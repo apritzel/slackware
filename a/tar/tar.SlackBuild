@@ -22,7 +22,7 @@
 
 # Slackware build script for tar
 
-VERSION=1.26
+VERSION=1.28
 BUILD=${BUILD:-1}
 
 NUMJOBS=${NUMJOBS:--j7}
@@ -98,14 +98,12 @@ zcat $CWD/tar.norecordsizespam.diff.gz | patch -p1 --verbose || exit 1
 # The "A lone zero block at %s" messages also cause problems:
 zcat $CWD/tar.nolonezero.diff.gz | patch -p1 --verbose || exit 1
 
-# Add support for *.txz files (our packages)
-zcat $CWD/tar-1.2x.support_txz.diff.gz | patch -p1 --verbose || exit 1
-
 FORCE_UNSAFE_CONFIGURE=1 \
 CFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
   --infodir=/usr/info \
+  --mandir=/usr/man \
   --docdir=/usr/doc/tar-$VERSION \
   --enable-backup-scripts \
   --build=$ARCH-slackware-linux
@@ -120,6 +118,7 @@ make install DESTDIR=$PKG || exit 1
     xargs strip --strip-unneeded 2> /dev/null
 )
 
+mkdir -p $PKG/bin
 mv $PKG/usr/bin/tar $PKG/bin
 ( cd $PKG/usr/bin ; ln -sf /bin/tar . )
 ( cd $PKG/bin ; ln -sf tar tar-$VERSION )
@@ -132,16 +131,14 @@ mkdir -p $PKG/{etc,sbin}
   ln -sf /usr/libexec/rmt .
 )
 
-mkdir -p $PKG/usr/man/man{1,8}
-cat $CWD/tar.1.gz > $PKG/usr/man/man1/tar.1.gz
-cat $CWD/rmt.8.gz > $PKG/usr/man/man8/rmt.8.gz
+gzip -9 $PKG/usr/man/man1/* $PKG/usr/man/man8/*
 
 rm -f $PKG/usr/info/dir
 gzip -9 $PKG/usr/info/*
 
 mkdir -p $PKG/usr/doc/tar-$VERSION
 cp -a \
-  ABOUT-NLS AUTHORS COPYING NEWS PORTS README THANKS TODO \
+  ABOUT-NLS AUTHORS COPYING ChangeLog NEWS README THANKS TODO \
   $PKG/usr/doc/tar-$VERSION
 
 mkdir -p $PKG/install
