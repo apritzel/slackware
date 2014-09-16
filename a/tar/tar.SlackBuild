@@ -53,34 +53,6 @@ else
   SLKCFLAGS="-O2"
 fi
 
-# This old version is the only one that won't clobber symlinks, e.g.:
-# someone moves /opt to /usr/opt and makes a symlink.  With newer
-# versions of tar, installing any new package will remove the /opt
-# symlink and plop down a new directory there.
-# Well, there's a lot of other bugs (the remote stuff particularly I'm
-# told is flaky) in tar-1.13, so it'll only be here now for use by the
-# Slackware package utils.  And, we'll even let people remove it and
-# the pkgutils will still try to work (but eventually they'll pay the
-# price :)
-cd $TMP
-rm -rf tar-1.13
-tar xvf $CWD/tar-1.13.tar.gz || exit 1
-cd tar-1.13 || exit 1
-zcat $CWD/tar-1.13.bzip2.diff.gz | patch -p1 --verbose || exit 1
-# The original config.{guess,sub} do not work on x86_64
-cp -p /usr/share/libtool/config/config.{guess,sub} .
-chown -R root:root .
-CFLAGS="$SLKCFLAGS" \
-./configure \
-  --prefix=/usr \
-  --disable-nls \
-  --build=$ARCH-slackware-linux
-make $NUMJOBS || make || exit 1
-mkdir -p $PKG/bin
-cat src/tar > $PKG/bin/tar-1.13
-chmod 0755 $PKG/bin/tar-1.13
-# End building of tar-1.13
-
 cd $TMP
 rm -rf tar-$VERSION
 tar xvf $CWD/tar-$VERSION.tar.xz || exit 1
