@@ -107,21 +107,21 @@ MD5SUM=0
 
 # So that we know what to expect...
 umask 022
-TAR=tar-1.13
-$TAR --help 1> /dev/null 2> /dev/null
-if [ ! $? = 0 ]; then
-  TAR=tar
-fi
-if [ ! "$(LC_MESSAGES=C $TAR --version)" = "tar (GNU tar) 1.13
 
-Copyright (C) 1988, 92,93,94,95,96,97,98, 1999 Free Software Foundation, Inc.
-This is free software; see the source for copying conditions.  There is NO
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-Written by John Gilmore and Jay Fenlason." ]; then
-  echo "WARNING: pkgtools are unstable with tar > 1.13."
-  echo "         You should provide a \"tar-1.13\" in your \$PATH."
-  sleep 5
+TAROPTS="-f"
+if which tar-1.13 > /dev/null; then
+	TAR=tar-1.13
+else
+	tar --keep-directory-symlink 2> /dev/null
+	if [ $? -ne 2 ]; then
+		echo "WARNING: pkgtools are unstable with 1.13 < tar < 1.28."
+		echo "         You should provide a \"tar-1.13\" in your \$PATH"
+		echo "         or use tar 1.28 or greater."
+		sleep 5
+	else
+		TAROPTS="--keep-directory-symlink -f"
+	fi
+	TAR=tar
 fi
 
 usage() {
@@ -283,7 +283,7 @@ if [ "$MODE" = "warn" ]; then
       packagecompression=xz
       ;;
     esac
-    ( cd $TMP/scan$$ ; $packagecompression -dc | $TAR xf - install ) < $1 2> /dev/null 
+    ( cd $TMP/scan$$ ; $packagecompression -dc | $TAR -x $TAROPTS - install ) < $1 2> /dev/null
     if [ -r $TMP/scan$$/install/doinst.sh ]; then
       if cat $TMP/scan$$/install/doinst.sh | grep ' rm -rf ' 1>/dev/null 2>/dev/null ; then
         cat $TMP/scan$$/install/doinst.sh | grep ' rm -rf ' > $TMP/scan$$/install/delete
@@ -442,7 +442,7 @@ for package in $* ; do
   # This requires a costly untar.
   if [ "$DESCRIPTION" = "" ]; then
     mkdir -p $TMP/scan$$
-    ( cd $TMP/scan$$ ; $packagecompression -dc | $TAR xf - install ) < $package 2> /dev/null
+    ( cd $TMP/scan$$ ; $packagecompression -dc | $TAR -x $TAROPTS - install ) < $package 2> /dev/null
     if grep "^$packagebase:" "$TMP/scan$$/install/slack-desc" 1> /dev/null 2> /dev/null ; then
       DESCRIPTION="$TMP/scan$$/install/slack-desc"
     elif grep "^$shortname:" "$TMP/scan$$/install/slack-desc" 1> /dev/null 2> /dev/null ; then
@@ -548,7 +548,7 @@ EOF
     cat $DESCRIPTION | grep "^$shortname:" >> $ADM_DIR/packages/$shortname 2> /dev/null
   fi
   echo "FILE LIST:" >> $ADM_DIR/packages/$shortname
-  ( cd $ROOT/ ; $packagecompression -dc | $TAR -xlUpvf - ) < $package >> $TMP/$shortname 2> /dev/null
+  ( cd $ROOT/ ; $packagecompression -dc | $TAR -xlUpv $TAROPTS - ) < $package >> $TMP/$shortname 2> /dev/null
   if [ "$(cat $TMP/$shortname | grep '^\./' | wc -l | tr -d ' ')" = "1" ]; then
     # Good.  We have a package that meets the Slackware spec.
     cat $TMP/$shortname >> $ADM_DIR/packages/$shortname
