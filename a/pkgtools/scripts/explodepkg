@@ -21,21 +21,20 @@
 #  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-TAR=tar-1.13
-$TAR --help 1> /dev/null 2> /dev/null
-if [ ! $? = 0 ]; then
-  TAR=tar
-fi
-if [ ! "`LC_MESSAGES=C $TAR --version`" = "tar (GNU tar) 1.13
-
-Copyright (C) 1988, 92,93,94,95,96,97,98, 1999 Free Software Foundation, Inc.
-This is free software; see the source for copying conditions.  There is NO
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-Written by John Gilmore and Jay Fenlason." ]; then
-  echo "WARNING: pkgtools are unstable with tar > 1.13."
-  echo "         You should provide a \"tar-1.13\" in your \$PATH."
-  sleep 5
+TAROPTS="-f"
+if which tar-1.13 > /dev/null; then
+	TAR=tar-1.13
+else
+	tar --keep-directory-symlink 2> /dev/null
+	if [ $? -ne 2 ]; then
+		echo "WARNING: pkgtools are unstable with 1.13 < tar < 1.28."
+		echo "         You should provide a \"tar-1.13\" in your \$PATH"
+		echo "         or use tar 1.28 or greater."
+		sleep 5
+	else
+		TAROPTS="--keep-directory-symlink -f"
+	fi
+	TAR=tar
 fi
 
 if [ $# = 0 ]; then
@@ -87,7 +86,7 @@ for PKG in $* ; do
     packagecompression=xz
     ;;
   esac
-  ( umask 000 ; cat $PKG | $packagecompression -dc | $TAR xvf - 2> /dev/null )
+  ( umask 000 ; cat $PKG | $packagecompression -dc | $TAR -xv $TAROPTS - 2> /dev/null )
   if [ -r install/doinst.sh ]; then
     echo
     echo "An installation script was detected in ./install/doinst.sh, but"
